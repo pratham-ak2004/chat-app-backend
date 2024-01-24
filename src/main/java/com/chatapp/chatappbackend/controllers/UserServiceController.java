@@ -55,12 +55,23 @@ public class UserServiceController {
         System.out.println("message: " + message);
         return ("Received: " + message + "!");
     }
-
+/*
     @MessageMapping("/addChat")
     @SendTo("/chat/{roomId}")
     public Chat addChat(@DestinationVariable String roomId, StompHeaderAccessor accessor, @Payload Chat chat) throws Exception {
         System.out.println("Destination: " + accessor.getDestination());
         System.out.println("Chat: " + chat);
+        return chat;
+    }
+*/
+    @MessageMapping("/addChat/{roomId}")
+    @SendTo("/chat/{roomId}")
+    public Chat addChat(@DestinationVariable String roomId, StompHeaderAccessor accessor, @Payload Chat chat) throws Exception {
+        System.out.println("Destination: " + accessor.getDestination());
+        System.out.println("Chat: " + chat);
+
+        // Save the chat message to your database or perform any other necessary operations
+
         return chat;
     }
 
