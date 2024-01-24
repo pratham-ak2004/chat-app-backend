@@ -1,6 +1,9 @@
 package com.chatapp.chatappbackend.controllers;
 
+import com.chatapp.chatappbackend.models.BodyClasses;
+import com.chatapp.chatappbackend.models.Socket;
 import com.chatapp.chatappbackend.models.User;
+import com.chatapp.chatappbackend.repository.SocketsRepository;
 import com.chatapp.chatappbackend.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -10,6 +13,9 @@ import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Collections;
+import java.util.List;
 
 @RestController
 @CrossOrigin(origins = "http://localhost:5173")
@@ -22,12 +28,27 @@ public class UserController {
     @Autowired
     MongoTemplate mongoTemplate;
 
+    @Autowired
+    SocketsRepository socketsRepository;
+
     @PostMapping("/addUser")
     public ResponseEntity addUser(@RequestBody User user) {
         if (userRepository.findByUserId(user.getUserId()) != null) {
-            return new ResponseEntity("User already exists", null, HttpStatus.IM_USED);
+            Query query = new Query();
+            query.addCriteria(Criteria.where("userId").is(user.getUserId()));
+
+            Update update = new Update();
+            update.set("userName", user.getUserName());
+            update.set("userImg", user.getUserImg());
+
+            mongoTemplate.updateFirst(query, update, User.class);
+
+            User temp = userRepository.findByUserId(user.getUserId());
+            return new ResponseEntity(temp, null, HttpStatus.IM_USED);
         }
-        return new ResponseEntity(userRepository.save(user), null, HttpStatus.OK);
+        userRepository.save(user);
+
+        return new ResponseEntity(userRepository.findByUserId(user.getUserId()), null, HttpStatus.OK);
     }
 
     @GetMapping("/getAll")
@@ -43,6 +64,52 @@ public class UserController {
         Update update = new Update();
         update.addToSet("friendsIds").each(user.getFriendsIds());
 
-        return new ResponseEntity( mongoTemplate.upsert(query, update, User.class, "users"), null, HttpStatus.ACCEPTED);
+        mongoTemplate.upsert(query, update, User.class, "users");
+
+        List<String> friends = user.getFriendsIds();
+        for(String friend : friends) {
+            query = new Query();
+            query.addCriteria(Criteria.where("userId").is(friend));
+
+            update = new Update();
+            update.addToSet("friendsIds").each(user.getUserId());
+            mongoTemplate.upsert(query, update, User.class, "users");
+        }
+
+        friends.add(user.getUserId());
+        Collections.sort(friends);
+
+        System.out.println(friends);
+
+        Socket socket = new Socket();
+        socket.setParticipants(friends);
+
+        if(socketsRepository.findByParticipants(friends) == null) {
+            socketsRepository.save(socket);
+        }
+
+        return new ResponseEntity( "Done" , null, HttpStatus.ACCEPTED);
     }
+
+    @GetMapping("/getUserDetails/{userId}")
+    public ResponseEntity getUserDetails(@PathVariable String userId) {
+        User user = userRepository.findByUserId(userId);
+        return new ResponseEntity(user, null, HttpStatus.OK);
+    }
+
+    @PostMapping("/getUserDetailsWithSocket/{userId}")
+    public ResponseEntity getUserDetailsWithSocket(@PathVariable String userId , @RequestBody BodyClasses.SocketBody body) {
+        User user = userRepository.findByUserId(userId);
+        BodyClasses.ResponseBody requestBody = new BodyClasses.ResponseBody();
+
+        requestBody.setUser(user);
+
+        if(socketsRepository.findByParticipantsContaining(userId) != null) {
+            requestBody.setSocket(socketsRepository.findByParticipantsContaining(userId));
+        }
+
+        return new ResponseEntity(requestBody, null, HttpStatus.OK);
+    }
+
+
 }

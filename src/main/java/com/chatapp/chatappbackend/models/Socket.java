@@ -7,23 +7,15 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.List;
 
+@Document(collection = "sockets")
 @Data
-@Document(collection = "users")
-public class User {
+public class Socket {
 
     @Id
     @JsonProperty("_id")
     private String id;
 
-    @JsonProperty("userId")
-    private String userId;
+    @JsonProperty("participants")
+    private List<String> participants;
 
-    @JsonProperty("userName")
-    private String userName;
-
-    @JsonProperty("userImg")
-    private String userImg;
-
-    @JsonProperty("friendsIds")
-    List<String> friendsIds;
 }
