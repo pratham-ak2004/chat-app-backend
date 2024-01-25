@@ -21,7 +21,7 @@ import java.util.Comparator;
 import java.util.List;
 
 @RestController
-@CrossOrigin(origins = {"http://localhost:5173", "https://chatify-chat.vercel.app"})
+@CrossOrigin(origins = {"http://localhost:5173", "https://chit-chat-chat.vercel.app"})
 @RequestMapping("/api")
 public class UserController {
 
