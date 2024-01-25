@@ -1,8 +1,10 @@
 package com.chatapp.chatappbackend.controllers;
 
 import com.chatapp.chatappbackend.models.BodyClasses;
+import com.chatapp.chatappbackend.models.Chat;
 import com.chatapp.chatappbackend.models.Socket;
 import com.chatapp.chatappbackend.models.User;
+import com.chatapp.chatappbackend.repository.ChatRepository;
 import com.chatapp.chatappbackend.repository.SocketsRepository;
 import com.chatapp.chatappbackend.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,21 +17,25 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 @RestController
-@CrossOrigin(origins = "http://localhost:5173")
+@CrossOrigin(origins = {"http://localhost:5173", "https://chatify-chat.vercel.app"})
 @RequestMapping("/api")
 public class UserController {
 
     @Autowired
-    UserRepository userRepository;
+    private UserRepository userRepository;
 
     @Autowired
-    MongoTemplate mongoTemplate;
+    private MongoTemplate mongoTemplate;
 
     @Autowired
-    SocketsRepository socketsRepository;
+    private SocketsRepository socketsRepository;
+
+    @Autowired
+    private ChatRepository chatRepository;
 
     @PostMapping("/addUser")
     public ResponseEntity addUser(@RequestBody User user) {
@@ -45,10 +51,10 @@ public class UserController {
 
             User temp = userRepository.findByUserId(user.getUserId());
             return new ResponseEntity(temp, null, HttpStatus.IM_USED);
+        } else {
+            userRepository.save(user);
+            return new ResponseEntity(userRepository.findByUserId(user.getUserId()), null, HttpStatus.OK);
         }
-        userRepository.save(user);
-
-        return new ResponseEntity(userRepository.findByUserId(user.getUserId()), null, HttpStatus.OK);
     }
 
     @GetMapping("/getAll")
@@ -67,7 +73,7 @@ public class UserController {
         mongoTemplate.upsert(query, update, User.class, "users");
 
         List<String> friends = user.getFriendsIds();
-        for(String friend : friends) {
+        for (String friend : friends) {
             query = new Query();
             query.addCriteria(Criteria.where("userId").is(friend));
 
@@ -79,16 +85,14 @@ public class UserController {
         friends.add(user.getUserId());
         Collections.sort(friends);
 
-        System.out.println(friends);
-
         Socket socket = new Socket();
         socket.setParticipants(friends);
 
-        if(socketsRepository.findByParticipants(friends) == null) {
+        if (socketsRepository.findByParticipants(friends) == null) {
             socketsRepository.save(socket);
         }
 
-        return new ResponseEntity( "Done" , null, HttpStatus.ACCEPTED);
+        return new ResponseEntity("Done", null, HttpStatus.ACCEPTED);
     }
 
     @GetMapping("/getUserDetails/{userId}")
@@ -98,18 +102,27 @@ public class UserController {
     }
 
     @PostMapping("/getUserDetailsWithSocket/{userId}")
-    public ResponseEntity getUserDetailsWithSocket(@PathVariable String userId , @RequestBody BodyClasses.SocketBody body) {
+    public ResponseEntity getUserDetailsWithSocket(@PathVariable String userId, @RequestBody BodyClasses.SocketBody body) {
         User user = userRepository.findByUserId(userId);
         BodyClasses.ResponseBody requestBody = new BodyClasses.ResponseBody();
 
         requestBody.setUser(user);
 
-        if(socketsRepository.findByParticipantsContaining(userId) != null) {
+        if (socketsRepository.findByParticipantsContaining(userId) != null) {
             requestBody.setSocket(socketsRepository.findByParticipantsContaining(userId));
         }
 
         return new ResponseEntity(requestBody, null, HttpStatus.OK);
     }
 
+    @GetMapping("/getChatMessages/{socketId}")
+    public ResponseEntity getChatMessages(@PathVariable String socketId) {
+        List<Chat> chatMessages = chatRepository.getChatBySocketId(socketId);
+
+        Comparator<Chat> timeStampComparator = Comparator.comparingLong(Chat::getTimeStamp);
+        Collections.sort(chatMessages, timeStampComparator);
+
+        return new ResponseEntity(chatMessages, null, HttpStatus.OK);
+    }
 
 }

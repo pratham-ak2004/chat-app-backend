@@ -1,7 +1,6 @@
 package com.chatapp.chatappbackend.models;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import jakarta.jws.soap.SOAPBinding;
 import lombok.Data;
 import org.springframework.data.mongodb.core.mapping.Document;
 
