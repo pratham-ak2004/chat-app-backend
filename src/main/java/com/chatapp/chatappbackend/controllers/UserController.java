@@ -1,5 +1,6 @@
 package com.chatapp.chatappbackend.controllers;
 
+import com.chatapp.chatappbackend.functionalComponents.SearchRepository;
 import com.chatapp.chatappbackend.models.BodyClasses;
 import com.chatapp.chatappbackend.models.Chat;
 import com.chatapp.chatappbackend.models.Socket;
@@ -16,9 +17,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 
 @RestController
 @CrossOrigin(origins = {"http://localhost:5173", "https://chit-chat-chat.vercel.app"})
@@ -36,6 +35,9 @@ public class UserController {
 
     @Autowired
     private ChatRepository chatRepository;
+
+    @Autowired
+    private SearchRepository searchRepository;
 
     @PostMapping("/addUser")
     public ResponseEntity addUser(@RequestBody User user) {
@@ -101,13 +103,14 @@ public class UserController {
         return new ResponseEntity(user, null, HttpStatus.OK);
     }
 
+    // Not Useable
     @PostMapping("/getUserDetailsWithSocket/{userId}")
     public ResponseEntity getUserDetailsWithSocket(@PathVariable String userId, @RequestBody BodyClasses.SocketBody body) {
         User user = userRepository.findByUserId(userId);
         BodyClasses.ResponseBody requestBody = new BodyClasses.ResponseBody();
 
         requestBody.setUser(user);
-
+        //needs fixing
         if (socketsRepository.findByParticipantsContaining(userId) != null) {
             requestBody.setSocket(socketsRepository.findByParticipantsContaining(userId));
         }
@@ -123,6 +126,24 @@ public class UserController {
         Collections.sort(chatMessages, timeStampComparator);
 
         return new ResponseEntity(chatMessages, null, HttpStatus.OK);
+    }
+
+    @PostMapping("/getFriend/{friendId}")
+    public ResponseEntity getFriend(@PathVariable String friendId , @RequestBody BodyClasses.UserData userId){
+        User friendUser = userRepository.findByUserId(friendId);
+
+        List<String > searchList = new ArrayList<>();
+        searchList.add(friendId);
+        searchList.add(userId.getUserId());
+
+        Collections.sort(searchList);
+        Socket soc = searchRepository.getSockets(searchList.get(0),searchList.get(1));
+
+        BodyClasses.Response ans = new BodyClasses.Response();
+        ans.setUser(friendUser);
+        ans.setSocket(soc);
+
+        return new ResponseEntity(ans , null , HttpStatus.OK);
     }
 
 }

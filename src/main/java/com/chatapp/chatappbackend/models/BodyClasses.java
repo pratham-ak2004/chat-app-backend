@@ -28,4 +28,23 @@ public class BodyClasses {
         @JsonProperty("user")
         private User user;
     }
+
+    @Document
+    @Data
+    public static  class UserData {
+
+        @JsonProperty("userId")
+        private String userId;
+    }
+
+    @Document
+    @Data
+    public static class Response{
+
+        @JsonProperty("User")
+        private User user;
+
+        @JsonProperty("socket")
+        private Socket socket;
+    }
 }
