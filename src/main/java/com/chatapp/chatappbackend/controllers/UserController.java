@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.*;
 
 @RestController
-@CrossOrigin(origins = {"http://localhost:5173", "https://chit-chat-chat.vercel.app"})
+@CrossOrigin(origins = {"http://localhost:5173", "https://chit-chat-chat.vercel.app", "https://chat.prathamak.me"})
 @RequestMapping("/api")
 public class UserController {
 
