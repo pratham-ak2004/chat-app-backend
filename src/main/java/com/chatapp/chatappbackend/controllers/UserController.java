@@ -39,6 +39,11 @@ public class UserController {
     @Autowired
     private SearchRepository searchRepository;
 
+    @GetMapping("/ping")
+    public ResponseEntity healthCheck() {
+        return new ResponseEntity(true,null, HttpStatus.OK);
+    }
+
     @PostMapping("/addUser")
     public ResponseEntity addUser(@RequestBody User user) {
         if (userRepository.findByUserId(user.getUserId()) != null) {
